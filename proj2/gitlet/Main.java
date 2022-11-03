@@ -21,7 +21,8 @@ public class Main {
                 Repository.InitRepo();
                 break;
             case "add":
-                // TODO: handle the `add [filename]` command
+                validateNumArgs(args, 2);
+                Repository.AddFile(args[1]);
                 break;
             // TODO: FILL THE REST IN
         }

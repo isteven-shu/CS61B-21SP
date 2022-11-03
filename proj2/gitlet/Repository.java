@@ -1,6 +1,6 @@
 package gitlet;
 
-import java.io.File;
+import java.io.*;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,5 +54,31 @@ public class Repository {
         /** Save master branch and HEAD */
         writeContents(join(BRANCHES_DIR, "master"), ID);
         writeContents(join(GITLET_DIR, "HEAD"), "master");
+    }
+
+    public static void AddFile(String fileName) {
+        File newFile = join(CWD, fileName);
+        if (!newFile.exists()) {
+            System.out.println("File does not exist.");
+            System.exit(0);
+        }
+        /** Save the blob */
+        byte[] fileContent = readContents(newFile);
+        String ID = sha1(fileContent);
+        File blobPrefix = join(BLOBS_DIR, ID.substring(0, 2));
+        if (!blobPrefix.exists()) {
+            blobPrefix.mkdir();
+        }
+        writeContents(join(blobPrefix, ID.substring(2)), fileContent);
+        /** Update the INDEX */
+        File INDEX = join(GITLET_DIR, "INDEX");
+        Index stagingArea = null;
+        if (INDEX.exists()) {
+            stagingArea = readObject(INDEX, Index.class);
+        } else {
+            stagingArea = new Index();
+        }
+        stagingArea.staged.put(fileName, ID);
+        writeObject(INDEX, stagingArea);
     }
 }
