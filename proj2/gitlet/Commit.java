@@ -2,9 +2,14 @@ package gitlet;
 
 // TODO: any imports you need here
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
 import java.util.HashMap;
+
+import static gitlet.Repository.COMMITS_DIR;
+import static gitlet.Utils.join;
+import static gitlet.Utils.writeObject;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -27,5 +32,24 @@ public class Commit implements Serializable {
         this.date = date;
         this.message = message;
         this.parent = parent;
+    }
+
+    Commit(Date date, String message, String parent, HashMap<String, String> blobs) {
+        this.date = date;
+        this.message = message;
+        this.parent = parent;
+        this.blobs = blobs;
+    }
+
+    public HashMap<String, String> getBlobs() {
+        return blobs;
+    }
+
+    public void save(String ID) {
+        File commitPrefix = join(COMMITS_DIR, ID.substring(0, 2));  // To accelerate the abbreviation search.
+        if (!commitPrefix.exists()) {
+            commitPrefix.mkdir();
+        }
+        writeObject(join(commitPrefix, ID.substring(2)), this);
     }
 }

@@ -80,8 +80,8 @@ public class CapersRepository {
      */
     public static void celebrateBirthday(String name) {
         // TODO
-        Dog dog = Dog.fromFile(name);
-        dog.haveBirthday();
-        dog.saveDog();
+        Dog dog = Dog.fromFile(name);   // Read in the Dog Object
+        dog.haveBirthday();             // Modify the Dog Object
+        dog.saveDog();                  // Write the Dog Object
     }
 }

@@ -24,7 +24,10 @@ public class Main {
                 validateNumArgs(args, 2);
                 Repository.AddFile(args[1]);
                 break;
-            // TODO: FILL THE REST IN
+            case "commit":
+                validateNumArgs(args, 2);
+                Repository.NewCommit(args[1]);
+                break;
         }
     }
 
