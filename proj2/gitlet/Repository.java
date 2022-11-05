@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.*;
 import java.util.Date;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -171,6 +172,29 @@ public class Repository {
         if (errorFlag) {
             System.out.println("No reason to remove the file.");
             System.exit(0);
+        }
+    }
+
+    private static void printCommit(String ID, Commit commit) {
+        System.out.println("===");
+        System.out.println("commit " + ID);
+        System.out.println("Date: " + commit.getFormattedTime());
+        // TODO: merge situation.
+        System.out.println(commit.getMessage());
+        System.out.print("\n");
+    }
+
+    public static void log() {
+        String curBranch = readContentsAsString(HEAD);
+        String ID = getHeadCommitID(curBranch);
+        Commit cur = getCommitBySHA(ID);
+        String parent = cur.getParent();
+        printCommit(ID, cur);
+        while (parent != null) {
+            cur = getCommitBySHA(parent);
+            ID = parent;
+            printCommit(ID, cur);
+            parent = cur.getParent();
         }
     }
 }

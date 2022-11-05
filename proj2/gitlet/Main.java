@@ -32,6 +32,10 @@ public class Main {
                 validateNumArgs(args, 2);
                 Repository.remove(args[1]);
                 break;
+            case "log":
+                validateNumArgs(args, 1);
+                Repository.log();
+                break;
         }
     }
 

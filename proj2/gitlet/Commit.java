@@ -4,8 +4,11 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date; // TODO: You'll likely use this in this class
 import java.util.HashMap;
+import java.util.Locale;
 
 import static gitlet.Repository.COMMITS_DIR;
 import static gitlet.Utils.join;
@@ -43,6 +46,19 @@ public class Commit implements Serializable {
 
     public HashMap<String, String> getBlobs() {
         return blobs;
+    }
+
+    public String getParent() {
+        return parent;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public String getFormattedTime() {
+        DateFormat df = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.ENGLISH);
+        return df.format(date);
     }
 
     public void save(String ID) {
