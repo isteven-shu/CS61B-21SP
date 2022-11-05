@@ -49,7 +49,7 @@ public class Repository {
 
         /** Create and save initial commit */
         Commit root = new Commit(new Date(0), "initial commit", null);
-        String ID = sha1(root);
+        String ID = sha1(root.toString());
         root.save(ID);
 
         /** Save master branch and HEAD */
@@ -121,7 +121,13 @@ public class Repository {
         // Blobs.
         Commit prevCommit = getCommitBySHA(parent);
         HashMap<String, String> orig = prevCommit.getBlobs();
-        HashMap<String, String> newBlobs = new HashMap<>(orig);
+        HashMap<String, String> newBlobs;
+        if (orig != null) { // In case it's the first commit after the initial commit.
+            newBlobs = new HashMap<>(orig);
+        } else {
+            newBlobs = new HashMap<>();
+        }
+
         for (Map.Entry<String, String> entry : changes.staged.entrySet()) {
             newBlobs.put(entry.getKey(), entry.getValue());
         }
@@ -134,7 +140,7 @@ public class Repository {
 
         // Create and save the new commit.
         Commit newCommit = new Commit(timeStamp, message, parent, newBlobs);
-        String ID = sha1(newCommit);
+        String ID = sha1(newCommit.toString());
         newCommit.save(ID);
 
         // Update branch.
@@ -143,5 +149,28 @@ public class Repository {
         // Clear the staging area.
         changes.clear();
         changes.save();
+    }
+
+    public static void remove(String fileName) {
+        boolean errorFlag = true;
+        Index changes = readObject(INDEX, Index.class);
+        if (changes.staged.containsKey(fileName)) {
+            changes.staged.remove(fileName);
+            errorFlag = false;
+        }
+
+        Commit headCommit = getHeadCommit();
+        if (headCommit.getBlobs().containsKey(fileName)) {
+            changes.removed.add(fileName);
+            if (!restrictedDelete(join(CWD, fileName))) {
+                System.out.println("!!!!!!!!!!!!");
+            }
+            errorFlag = false;
+        }
+
+        if (errorFlag) {
+            System.out.println("No reason to remove the file.");
+            System.exit(0);
+        }
     }
 }

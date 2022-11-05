@@ -29,17 +29,20 @@ Represents the paths
 1. Field 1
 2. Field 2
 
+### Index
+1. HashMap<String, String> staged
+2. HashSet<String> removed
 
 ## Algorithms
 
 ## Persistence
-
-gitlet
---HEAD (the content of HEAD is the name of the branch we currently on)
---branches/
---objects/
-   --blobs/ (each blob is named by the SHA1 of hte content of the file and its content is the original content)
-   --commits/
+CWD
+--.gitlet
+   --HEAD (the content of HEAD is the name of the branch we currently on)
+   --branches/
+   --objects/
+      --blobs/ (each blob is named by the SHA1 of hte content of the file and its content is the original content)
+      --commits/
 
 
 

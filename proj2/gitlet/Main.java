@@ -28,6 +28,10 @@ public class Main {
                 validateNumArgs(args, 2);
                 Repository.NewCommit(args[1]);
                 break;
+            case "rm":
+                validateNumArgs(args, 2);
+                Repository.remove(args[1]);
+                break;
         }
     }
 
