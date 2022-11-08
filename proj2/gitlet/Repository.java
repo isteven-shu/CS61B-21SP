@@ -1,10 +1,7 @@
 package gitlet;
 
 import java.io.*;
-import java.util.Date;
-import java.util.Formatter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -103,6 +100,27 @@ public class Repository {
         return readObject(commit, Commit.class);
     }
 
+    /**
+     * Create a new blob that updates the blob from the given commit
+     * with the given Index.
+     *
+     * @param commit The commit from which the blob will be read and created.
+     * @param changes The Index Object.
+     * @Return The updated blobs.
+     */
+    private static HashMap<String, String> getNewBlobs(Commit commit, Index changes) {
+        HashMap<String, String> orig = commit.getBlobs();
+        HashMap<String, String> newBlobs = new HashMap<>(orig);
+
+        for (Map.Entry<String, String> entry : changes.staged.entrySet()) {
+            newBlobs.put(entry.getKey(), entry.getValue());
+        }
+        for (String removedFile : changes.removed) {
+            newBlobs.remove(removedFile);
+        }
+        return newBlobs;
+    }
+
     /** commit command */
     public static void NewCommit(String message) {
         if (message == null) {
@@ -121,20 +139,7 @@ public class Repository {
 
         // Blobs.
         Commit prevCommit = getCommitBySHA(parent);
-        HashMap<String, String> orig = prevCommit.getBlobs();
-        HashMap<String, String> newBlobs;
-        if (orig != null) { // In case it's the first commit after the initial commit.
-            newBlobs = new HashMap<>(orig);
-        } else {
-            newBlobs = new HashMap<>();
-        }
-
-        for (Map.Entry<String, String> entry : changes.staged.entrySet()) {
-            newBlobs.put(entry.getKey(), entry.getValue());
-        }
-        for (String removedFile : changes.removed) {
-            newBlobs.remove(removedFile);
-        }
+        HashMap<String, String> newBlobs = getNewBlobs(prevCommit, changes);
 
         // Date.
         Date timeStamp = new Date();
@@ -164,7 +169,7 @@ public class Repository {
         if (headCommit.getBlobs().containsKey(fileName)) {
             changes.removed.add(fileName);
             if (!restrictedDelete(join(CWD, fileName))) {
-                System.out.println("!!!!!!!!!!!!");
+                System.exit(0);
             }
             errorFlag = false;
         }
@@ -176,12 +181,14 @@ public class Repository {
     }
 
     private static void printCommit(String ID, Commit commit) {
-        System.out.println("===");
-        System.out.println("commit " + ID);
-        System.out.println("Date: " + commit.getFormattedTime());
         // TODO: merge situation.
-        System.out.println(commit.getMessage());
-        System.out.print("\n");
+        StringBuilder returnSB = new StringBuilder();
+        returnSB.append("===\n");
+        returnSB.append("commit " + ID + "\n");
+        returnSB.append("Date: " + commit.getFormattedTime() + "\n");
+        returnSB.append(commit.getMessage() + "\n");
+        returnSB.append("\n");
+        System.out.print(returnSB.toString());
     }
 
     public static void log() {
@@ -196,5 +203,105 @@ public class Repository {
             printCommit(ID, cur);
             parent = cur.getParent();
         }
+    }
+
+    public static void globalLog() {
+        String[] commitDirs = COMMITS_DIR.list();
+        for (String commitDir: commitDirs) {
+            List<String> commits = plainFilenamesIn(join(COMMITS_DIR, commitDir));
+            for (String commit : commits) {
+                String ID = commitDir + commit;
+                Commit commitObj = getCommitBySHA(ID);
+                printCommit(ID, commitObj);
+            }
+        }
+    }
+
+    /**
+     * Create a new blobs (HsahMap) for the CWD.
+     */
+    private static HashMap<String, String> takeSnapShot() {
+        List<String> curFiles = plainFilenamesIn(CWD);
+        HashMap<String, String> snapShot = new HashMap<>();
+        for (String fileName : curFiles) {
+            byte[] fileContent = readContents(join(CWD, fileName));
+            String ID = sha1(fileContent);
+            snapShot.put(fileName, ID);
+        }
+        return snapShot;
+    }
+
+    public static void status() {
+        StringBuilder returnSB = new StringBuilder();
+        // Branches.
+        String curBranch = readContentsAsString(HEAD);
+        List<String> branches = plainFilenamesIn(BRANCHES_DIR);
+        returnSB.append("=== Branches ===\n");
+        returnSB.append("*");
+        returnSB.append(curBranch);
+        for (String branch : branches) {
+            if (branch != curBranch) {
+                returnSB.append(branch);
+                returnSB.append("\n");
+            }
+        }
+        returnSB.append("\n");
+
+        // Staged Files.
+        Index changes = readObject(INDEX, Index.class);
+
+        String[] stagedFiles = (String[]) changes.staged.keySet().toArray();
+        Arrays.sort(stagedFiles);
+        returnSB.append("=== Staged Files ===\n");
+        for (String stagedFile : stagedFiles) {
+            returnSB.append(stagedFile);
+            returnSB.append("\n");
+        }
+        returnSB.append("\n");
+
+        // Removed Files.
+        String[] removedFiles = (String[]) changes.removed.toArray();
+        Arrays.sort(removedFiles);
+        returnSB.append("=== Removed Files ===\n");
+        for (String removedFile : removedFiles) {
+            returnSB.append(removedFile);
+            returnSB.append("\n");
+        }
+        returnSB.append("\n");
+
+        // Modifications Not Staged For Commit.
+        // In essence, "modified" means (HEAD.blobs + INDEX) - the same entries in CWD.
+        returnSB.append("=== Modifications Not Staged For Commit ===\n");
+        HashMap<String, String> newBlobs = getNewBlobs(getHeadCommit(), changes);   // HEAD.blobs + INDEX
+        HashMap<String, String> snapShot = takeSnapShot();  // CWD snapshot
+        TreeSet<String> modifications = new TreeSet<>();
+        for (Map.Entry<String, String> entry : newBlobs.entrySet()) {
+            if (snapShot.containsKey(entry.getKey()) && !snapShot.get(entry.getKey()).equals(entry.getValue())) {
+                modifications.add(entry.getKey() + " (modified)");
+            } else if (!snapShot.containsKey(entry.getKey())) {
+                modifications.add(entry.getKey() + " (deleted)");
+            }
+        }
+        for (String entry : modifications) {
+            returnSB.append(entry);
+            returnSB.append("\n");
+        }
+        returnSB.append("\n");
+
+        // Untracked Files.
+        returnSB.append("=== Untracked Files ===\n");
+        TreeSet<String> untracked = new TreeSet<>();
+        for (Map.Entry<String, String> entry : snapShot.entrySet()) {
+            if (!newBlobs.containsKey(entry.getKey())) {
+                untracked.add(entry.getKey());
+            }
+        }
+        for (String entry : untracked) {
+            returnSB.append(entry);
+            returnSB.append("\n");
+        }
+        returnSB.append("\n");
+
+        System.out.print(returnSB.toString());
     }
 }

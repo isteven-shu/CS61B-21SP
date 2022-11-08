@@ -36,6 +36,14 @@ public class Main {
                 validateNumArgs(args, 1);
                 Repository.log();
                 break;
+            case "global-log":
+                validateNumArgs(args, 1);
+                Repository.globalLog();
+                break;
+            case "status":
+                validateNumArgs(args, 1);
+                Repository.status();
+                break;
         }
     }
 

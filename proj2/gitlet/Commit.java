@@ -35,6 +35,7 @@ public class Commit implements Serializable {
         this.date = date;
         this.message = message;
         this.parent = parent;
+        this.blobs = new HashMap<>();
     }
 
     Commit(Date date, String message, String parent, HashMap<String, String> blobs) {
@@ -67,5 +68,10 @@ public class Commit implements Serializable {
             commitPrefix.mkdir();
         }
         writeObject(join(commitPrefix, ID.substring(2)), this);
+    }
+
+    public String toString() {
+        String s = date.toString() + message + blobs.toString() + parent;
+        return s;
     }
 }
