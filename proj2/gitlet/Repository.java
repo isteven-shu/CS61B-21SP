@@ -304,4 +304,130 @@ public class Repository {
 
         System.out.print(returnSB.toString());
     }
+
+    public static void find(String message) {
+        StringBuilder returnSB = new StringBuilder();
+
+        String[] commitDirs = COMMITS_DIR.list();
+        for (String commitDir: commitDirs) {
+            List<String> commits = plainFilenamesIn(join(COMMITS_DIR, commitDir));
+            for (String commit : commits) {
+                String ID = commitDir + commit;
+                Commit commitObj = getCommitBySHA(ID);
+                if (commitObj.getMessage().contains(message)) { // Use String.contains() method.
+                    returnSB.append(ID);
+                    returnSB.append("\n");
+                }
+            }
+        }
+        System.out.println(returnSB.toString());
+    }
+
+    private static byte[] getBlobContent(String blobID) {
+        File blob = join(join(BLOBS_DIR, blobID.substring(0, 2)), blobID.substring(2));
+        return readContents(blob);
+    }
+
+    private static String curFileVersion(String fileName) {
+        return sha1(readContents(join(CWD, fileName)));
+    }
+
+    private static boolean branchExists(String branchName) {
+        File targetBranch = join(BRANCHES_DIR, branchName);
+        return targetBranch.exists();
+    }
+
+    public static void checkoutBranch(String branch) {
+        /** Precheck. */
+        String curBranch = readContentsAsString(HEAD);
+        if (curBranch.equals(branch)) {
+            System.out.println("No need to checkout the current branch.");
+            System.exit(0);
+        }
+        if (branchExists(branch)) {
+            System.out.println("No such branch exists.");
+            System.exit(0);
+        }
+
+        Commit headCommit = getHeadCommit();
+        Commit targetCommit = getCommitBySHA(getHeadCommitID(branch));
+
+        Index changes = readObject(INDEX, Index.class);
+        HashMap<String, String> newBlobs = getNewBlobs(headCommit, changes);   // HEAD.blobs + INDEX
+
+        List<String> snapShot = plainFilenamesIn(CWD);
+
+        for (String fileName : snapShot) {
+            if (!newBlobs.containsKey(fileName)) {  // Untracked: neither staged nor tracked.
+                if (targetCommit.containsFile(fileName)) {  // which will be overwritten.
+                    //&& !targetCommit.fileVersion(fileName).equals(curFileVersion(fileName))) {
+                    System.out.println("There is an untracked file in the way;" +
+                            " delete it, or add and commit it first.");
+                    System.exit(0);
+                }
+            }
+        }
+
+        for (String fileName : snapShot) {
+            if (headCommit.containsFile(fileName) && !targetCommit.containsFile(fileName)) {
+                restrictedDelete(join(CWD, fileName));
+            }
+        }
+
+        for (Map.Entry<String, String> entry : targetCommit.getBlobs().entrySet()) {
+            File file = join(CWD, entry.getKey());
+            String blobID = entry.getValue();
+            writeContents(file, getBlobContent(blobID));
+        }
+
+        changes.clear();
+        changes.save();
+        writeContents(HEAD, branch);
+    }
+
+    public static void checkoutFilefromHEAD(String fileName) {
+        Commit head = getHeadCommit();
+        checkoutFilefromCommit(head, fileName);
+    }
+
+    public static void checkoutFilefromCommit(Commit commit, String fileName) {
+        if (!commit.getBlobs().containsKey(fileName)) {
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
+        }
+        String ID = commit.getBlobs().get(fileName);
+        File file = join(join(BLOBS_DIR, ID.substring(0, 2)), ID.substring(2));
+        byte[] content = readContents(file);
+        writeContents(join(CWD, fileName), content);
+    }
+
+    public static void checkoutFilefromCommitID(String ID, String fileName) {
+        if (ID.length() == 40) {
+            checkoutFilefromCommit(getCommitBySHA(ID), fileName);
+            return;
+        }
+
+        // Abbreviated commit ID.
+        File commitPrefix = join(COMMITS_DIR, ID.substring(0, 2));
+        List<String> commits = plainFilenamesIn(commitPrefix);
+        for (String commit : commits) {
+            if (commit.startsWith(ID)) {
+                Commit commitObj = readObject(join(commitPrefix, commit), Commit.class);
+                checkoutFilefromCommit(commitObj, fileName);
+                return;
+            }
+        }
+        System.out.println("No commit with that id exists.");
+        System.exit(0);
+    }
+
+    public static void newBranch(String branchName) {
+        File branch = join(BRANCHES_DIR, branchName);
+        if (branch.exists()) {
+            System.out.println("A branch with that name already exists.");
+            System.exit(0);
+        }
+
+        writeContents(branch, getHeadCommitID(readContentsAsString(HEAD)));
+    }
 }

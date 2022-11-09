@@ -70,6 +70,15 @@ public class Commit implements Serializable {
         writeObject(join(commitPrefix, ID.substring(2)), this);
     }
 
+    public boolean containsFile(String fileName) {
+        return blobs.containsKey(fileName);
+    }
+
+    public String fileVersion(String fileName) {
+        return blobs.get(fileName);
+    }
+
+    /** The default Object class' toString() method prints the location of the object in memory */
     public String toString() {
         String s = date.toString() + message + blobs.toString() + parent;
         return s;

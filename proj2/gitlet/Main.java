@@ -44,6 +44,29 @@ public class Main {
                 validateNumArgs(args, 1);
                 Repository.status();
                 break;
+            case "find":
+                validateNumArgs(args, 2);
+                Repository.find(args[1]);
+                break;
+            case "checkout":
+                if (args.length == 2) {
+                    Repository.checkoutBranch(args[1]);
+                } else if (args.length == 3) {
+                    if (!args[1].equals("--")) {
+                        throw new RuntimeException(String.format("Incorrect operands."));
+                    }
+                    Repository.checkoutFilefromHEAD(args[2]);
+                } else if (args.length == 4) {
+                    if (!args[2].equals("--")) {
+                        throw new RuntimeException(String.format("Incorrect operands."));
+                    }
+                    Repository.checkoutFilefromCommitID(args[1], args[3]);
+                }
+                break;
+            case "branch":
+                validateNumArgs(args, 2);
+                Repository.newBranch(args[1]);
+                break;
         }
     }
 
