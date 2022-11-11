@@ -26,7 +26,7 @@ public class Main {
                 break;
             case "commit":
                 validateNumArgs(args, 2);
-                Repository.NewCommit(args[1]);
+                Repository.commit(args[1]);
                 break;
             case "rm":
                 validateNumArgs(args, 2);
@@ -66,6 +66,18 @@ public class Main {
             case "branch":
                 validateNumArgs(args, 2);
                 Repository.newBranch(args[1]);
+                break;
+            case "rm-branch":
+                validateNumArgs(args, 2);
+                Repository.removeBranch(args[1]);
+                break;
+            case "reset":
+                validateNumArgs(args, 2);
+                Repository.reset(args[1]);
+                break;
+            case "merge":
+                validateNumArgs(args, 2);
+                Repository.merge(args[1]);
                 break;
         }
     }

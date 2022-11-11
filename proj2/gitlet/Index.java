@@ -20,6 +20,10 @@ public class Index implements Serializable {
         removed.clear();
     }
 
+    public boolean isEmpty() {
+        return staged.isEmpty() && removed.isEmpty();
+    }
+
     public void save() {
         writeObject(INDEX, this);
     }

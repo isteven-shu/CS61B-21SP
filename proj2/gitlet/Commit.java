@@ -21,28 +21,34 @@ import static gitlet.Utils.writeObject;
  *  @author Shuyuan Wang
  */
 public class Commit implements Serializable {
-    /** The message of this Commit. */
+    /** The timestamp of this Commit. */
     private Date date;
     /** The message of this Commit. */
     private String message;
-    /** The blobs in this Commit. A Map from filename to SHA1 ID */
+    /** The blobs in this Commit -- A Map from filename to SHA1 ID. */
     private HashMap<String, String> blobs;
-    /** The blobs in this Commit. A Map from filename to SHA1 ID */
-    private String parent;
+    /** The parent of this Commit. */
+    private String[] parents;
 
     /** Constructor */
     Commit(Date date, String message, String parent) {
         this.date = date;
         this.message = message;
-        this.parent = parent;
+        this.parents = new String[2];
+        this.parents[0] = parent;
         this.blobs = new HashMap<>();
     }
 
     Commit(Date date, String message, String parent, HashMap<String, String> blobs) {
         this.date = date;
         this.message = message;
-        this.parent = parent;
+        this.parents = new String[2];
+        this.parents[0] = parent;
         this.blobs = blobs;
+    }
+
+    public void setMergeParent(String mergeParent) {
+        this.parents[1] = mergeParent;
     }
 
     public HashMap<String, String> getBlobs() {
@@ -50,7 +56,11 @@ public class Commit implements Serializable {
     }
 
     public String getParent() {
-        return parent;
+        return parents[0];
+    }
+
+    public String getMergeParent() {
+        return parents[1];
     }
 
     public String getMessage() {
@@ -62,6 +72,7 @@ public class Commit implements Serializable {
         return df.format(date);
     }
 
+    /** Save the commit Obj to a persistent file named ID (which should be its SHA1). */
     public void save(String ID) {
         File commitPrefix = join(COMMITS_DIR, ID.substring(0, 2));  // To accelerate the abbreviation search.
         if (!commitPrefix.exists()) {
@@ -70,7 +81,7 @@ public class Commit implements Serializable {
         writeObject(join(commitPrefix, ID.substring(2)), this);
     }
 
-    public boolean containsFile(String fileName) {
+    public boolean tracks(String fileName) {
         return blobs.containsKey(fileName);
     }
 
@@ -78,9 +89,12 @@ public class Commit implements Serializable {
         return blobs.get(fileName);
     }
 
+    boolean isMergeCommit() {
+        return parents[1] != null;
+    }
+
     /** The default Object class' toString() method prints the location of the object in memory */
     public String toString() {
-        String s = date.toString() + message + blobs.toString() + parent;
-        return s;
+        return date.toString() + message + blobs.toString() + parents.toString();
     }
 }
