@@ -47,8 +47,13 @@ public class Commit implements Serializable {
         this.blobs = blobs;
     }
 
-    public void setMergeParent(String mergeParent) {
-        this.parents[1] = mergeParent;
+    Commit(Date date, String message, String[] parents, HashMap<String, String> blobs) {
+        this.date = date;
+        this.message = message;
+        this.parents = new String[2];
+        this.parents[0] = parents[0];
+        this.parents[1] = parents[1];
+        this.blobs = blobs;
     }
 
     public HashMap<String, String> getBlobs() {
@@ -57,6 +62,10 @@ public class Commit implements Serializable {
 
     public String getParent() {
         return parents[0];
+    }
+
+    public String[] getParents() {
+        return parents;
     }
 
     public String getMergeParent() {

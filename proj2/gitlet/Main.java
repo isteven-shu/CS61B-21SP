@@ -20,14 +20,14 @@ public class Main {
         switch(firstArg) {
             case "init":
                 validateNumArgs(args, 1);
-                Repository.InitRepo();
+                Repository.initRepo();
                 break;
             case "add":
                 validateNumArgs(args, 2);
-                Repository.AddFile(args[1]);
+                Repository.addFile(args[1]);
                 break;
             case "commit":
-                validateCommitArgs(args);
+                validateNumArgs(args, 2);
                 Repository.commit(args[1]);
                 break;
             case "rm":
@@ -101,13 +101,6 @@ public class Main {
         if (args.length != n) {
             throw new RuntimeException(
                     String.format("Incorrect operands."));
-        }
-    }
-
-    private static void validateCommitArgs(String[] args) {
-        if (args.length != 2) {
-            System.out.println("Please enter a commit message.");
-            System.exit(0);
         }
     }
 }

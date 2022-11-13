@@ -47,9 +47,10 @@ public class Repository {
     /**
      * init command.
      */
-    public static void InitRepo() {
+    public static void initRepo() {
         if (GITLET_DIR.exists()) {
-            System.out.println("A Gitlet version-control system already exists in the current directory.");
+            System.out.println("A Gitlet version-control system already " +
+                    "exists in the current directory.");
             System.exit(0);
         }
 
@@ -80,7 +81,7 @@ public class Repository {
     /**
      * add command.
      */
-    public static void AddFile(String fileName) {
+    public static void addFile(String fileName) {
         checkIfGitletDir();
         File newFile = join(CWD, fileName);
         if (!newFile.exists()) {
@@ -102,7 +103,8 @@ public class Repository {
         Commit headCommit = getHeadCommit();
         Index stagingArea = Index.getStagingArea();
         // rm and then add again.
-        if (stagingArea.removed.containsKey(fileName) && stagingArea.removed.get(fileName).equals(ID)) {
+        if (stagingArea.removed.containsKey(fileName)
+            && stagingArea.removed.get(fileName).equals(ID)) {
             stagingArea.removed.remove(fileName);
         // New file or modified the first time.
         } else if (!stagingArea.staged.containsKey(fileName)) {
@@ -176,6 +178,10 @@ public class Repository {
     public static void commit(String message) {
         /** Precheck. */
         checkIfGitletDir();
+        if (message.equals("")) {
+            System.out.println("Please enter a commit message.");
+            System.exit(0);
+        }
         Index changes = Index.getStagingArea();
         if (changes.isEmpty()) {
             System.out.println("No changes added to the commit.");
@@ -239,7 +245,7 @@ public class Repository {
         returnSB.append("commit " + ID + "\n");
         if (commit.isMergeCommit()) {
             returnSB.append(
-                "merge: " + commit.getParent().substring(0, 7) + commit.getMergeParent().substring(0, 7) + "\n"
+                "Merge: " + commit.getParent().substring(0, 7) + " " + commit.getMergeParent().substring(0, 7) + "\n"
             );
         }
         returnSB.append("Date: " + commit.getFormattedTime() + "\n");
@@ -406,10 +412,6 @@ public class Repository {
     private static byte[] getBlobContent(String blobID) {
         File blob = join(join(BLOBS_DIR, blobID.substring(0, 2)), blobID.substring(2));
         return readContents(blob);
-    }
-
-    private static String curFileVersion(String fileName) {
-        return sha1(readContents(join(CWD, fileName)));
     }
 
     private static boolean branchExists(String branchName) {
@@ -598,7 +600,7 @@ public class Repository {
         checkIfGitletDir();
         File branch = join(BRANCHES_DIR, branchName);
         if (!branch.exists()) {
-            System.out.println("A branch with that name already exists.");
+            System.out.println("A branch with that name does not exist.");
             System.exit(0);
         }
         String curBranch = readContentsAsString(HEAD);
@@ -657,7 +659,17 @@ public class Repository {
         }
 
         changes.save();
-        commit("Merged " + branchName + " into " + curBranch + ".");
+        Commit mergeCommit = new Commit(
+                new Date(),
+                "Merged " + branchName + " into " + curBranch + ".",
+                new String[] {curCommitID, mergedCommitID},
+                getNewBlobs(curCommit, changes)
+        );
+        String newID = sha1(mergeCommit.toString());
+        mergeCommit.save(newID);
+        writeContents(join(BRANCHES_DIR, curBranch), newID);
+        changes.clear();
+        changes.save();
     }
 
     /**
@@ -665,23 +677,38 @@ public class Repository {
      */
     public static String getSplitPointID(String mergedBranch) {
         HashSet<String> history = new HashSet<>();
-        /** Add all the ancestors of curBranch into Set. */
+        /* Add all the ancestors of curBranch into Set. */
         String curID = getHeadCommitID(readContentsAsString(HEAD));
         history.add(curID);
-        Commit curCommit = getCommitBySHA(curID);
-        String parentID = curCommit.getParent();
-        while (parentID != null) {
-            curID = parentID;
-            history.add(curID);
-            curCommit = getCommitBySHA(curID);
-            parentID = curCommit.getParent();
+        Queue<String> q = new LinkedList<>();
+        q.add(curID);
+        /* BFS. */
+        while (!q.isEmpty()) {
+            for (int i = 0; i < q.size(); ++i) {
+                curID = q.poll();
+                Commit curCommit = getCommitBySHA(curID);
+                for (String parentID : curCommit.getParents()) {
+                    if (parentID != null) {
+                        history.add(parentID);
+                        q.add(parentID);
+                    }
+                }
+            }
         }
         /** Find the closest ancestor. */
         curID = getHeadCommitID(mergedBranch);
-        curCommit = getCommitBySHA(curID);
-        while (!history.contains(curID)) {
-            curID = curCommit.getParent();
-            curCommit = getCommitBySHA(curID);
+        q.clear();
+        q.add(curID);
+        while (!q.isEmpty()) {
+            for (int i = 0; i < q.size(); ++i) {
+                curID = q.poll();
+                if (history.contains(curID)) {
+                    return curID;
+                }
+                Commit curCommit = getCommitBySHA(curID);
+                for (String parentID : curCommit.getParents())
+                    q.add(parentID);
+            }
         }
         return curID;
     }
